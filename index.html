@@ -115,6 +115,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA6iAD49M1YQItApp564isoMXkkYg7IhCA",
+    authDomain: "test-stock-icara.firebaseapp.com",
+    projectId: "test-stock-icara",
+    storageBucket: "test-stock-icara.firebasestorage.app",
+    messagingSenderId: "1052192420811",
+    appId: "1:1052192420811:web:80debea030688c28e03c4e"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.__firebase = { db, doc, getDoc, setDoc, onSnapshot };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
 <script type="text/babel">
 const { useState, useEffect, useRef, useMemo } = React;
 
@@ -123,40 +143,27 @@ const DEFAULT_LOCATIONS = ["Dépôt"];
 const NO_CAT = "Non classé";
 const NO_LOC = "Non renseigné";
 const UNITS = ["pièce", "m²", "ml", "kg", "boîte", "rouleau", "sac", "L"];
-const LS_ITEMS = "icara-stock-items";
-const LS_CATS = "icara-stock-categories";
-const LS_LOCS = "icara-stock-locations";
-
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-function loadLS(key, fallback){
-  try{
-    const raw = localStorage.getItem(key);
-    if(!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return parsed;
-  }catch(e){
-    console.error("Erreur de lecture", key, e);
-    return fallback;
-  }
+function normalizeCats(c){
+  let cats = (c && c.length) ? c.slice() : DEFAULT_CATEGORIES.slice();
+  if(!cats.includes(NO_CAT)) cats = [...cats, NO_CAT];
+  return cats;
 }
-function saveLS(key, value){
-  try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
-  catch(e){ console.error("Erreur de sauvegarde", key, e); return false; }
+function normalizeLocs(l){
+  let locs = (l && l.length) ? l.slice() : DEFAULT_LOCATIONS.slice();
+  if(!locs.includes(NO_LOC)) locs = [...locs, NO_LOC];
+  return locs;
 }
 
 function App(){
-  const [items, setItems] = useState(() => loadLS(LS_ITEMS, []));
-  const [categories, setCategories] = useState(() => {
-    let c = loadLS(LS_CATS, DEFAULT_CATEGORIES);
-    if(!c.includes(NO_CAT)) c = [...c, NO_CAT];
-    return c;
-  });
-  const [locations, setLocations] = useState(() => {
-    let l = loadLS(LS_LOCS, DEFAULT_LOCATIONS);
-    if(!l.includes(NO_LOC)) l = [...l, NO_LOC];
-    return l;
-  });
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES.concat(NO_CAT));
+  const [locations, setLocations] = useState(DEFAULT_LOCATIONS.concat(NO_LOC));
+  const [loaded, setLoaded] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("connecting"); // connecting | live | error
+  const remoteRef = useRef(false);
+  const docRef = useRef(null);
 
   const [view, setView] = useState("categorie"); // categorie | emplacement | gestion
   const [activeFilter, setActiveFilter] = useState("Toutes");
@@ -173,9 +180,49 @@ function App(){
   const [manageNewCat, setManageNewCat] = useState("");
   const [manageNewLoc, setManageNewLoc] = useState("");
 
-  useEffect(() => { saveLS(LS_ITEMS, items); }, [items]);
-  useEffect(() => { saveLS(LS_CATS, categories); }, [categories]);
-  useEffect(() => { saveLS(LS_LOCS, locations); }, [locations]);
+  // Connexion à Firestore et abonnement en direct
+  useEffect(() => {
+    function start(){
+      const fb = window.__firebase;
+      const ref = fb.doc(fb.db, "icara-stock", "main");
+      docRef.current = ref;
+      fb.onSnapshot(ref, (snap) => {
+        remoteRef.current = true;
+        if(snap.exists()){
+          const d = snap.data();
+          setItems(d.items || []);
+          setCategories(normalizeCats(d.categories));
+          setLocations(normalizeLocs(d.locations));
+        } else {
+          const initial = { items: [], categories: normalizeCats([]), locations: normalizeLocs([]) };
+          fb.setDoc(ref, initial).catch(e => console.error("Erreur création doc", e));
+        }
+        setSyncStatus("live");
+        setLoaded(true);
+      }, (err) => {
+        console.error("Erreur Firestore", err);
+        setSyncStatus("error");
+        setLoaded(true);
+      });
+    }
+    if(window.__firebase) start();
+    else window.addEventListener('firebase-ready', start, { once: true });
+    return () => window.removeEventListener('firebase-ready', start);
+  }, []);
+
+  // Écriture vers Firestore à chaque changement local (on ignore les mises à jour qui viennent du serveur)
+  useEffect(() => {
+    if(!loaded) return;
+    if(remoteRef.current){ remoteRef.current = false; return; }
+    const fb = window.__firebase;
+    if(!fb || !docRef.current) return;
+    fb.setDoc(docRef.current, { items, categories, locations }).catch(e => {
+      console.error("Erreur de sauvegarde", e);
+      setSyncStatus("error");
+      showToast("Sauvegarde impossible, vérifie ta connexion");
+    });
+  }, [items, categories, locations, loaded]);
+
   useEffect(() => { setActiveFilter("Toutes"); }, [view]);
 
   function showToast(msg){
@@ -299,11 +346,21 @@ function App(){
   const totalQty = items.reduce((s,i) => s + i.quantity, 0);
   const lowCount = items.filter(i => i.quantity <= 2).length;
 
+  if(!loaded){
+    return <div className="wrap"><div className="empty"><b>Connexion au stock…</b>Un instant</div></div>;
+  }
+
   return (
     <div className="wrap">
       <header className="top">
         <div>
-          <div className="brand-eyebrow">Icara Renov — Suivi de chantier</div>
+          <div className="brand-eyebrow">
+            Icara Renov — Suivi de chantier
+            {" · "}
+            <span style={{color: syncStatus === "live" ? "var(--steel)" : syncStatus === "error" ? "var(--low)" : "var(--ink-soft)"}}>
+              {syncStatus === "live" ? "● synchronisé" : syncStatus === "error" ? "● hors ligne" : "connexion…"}
+            </span>
+          </div>
           <h1>Stock matériaux</h1>
         </div>
         <div className="stats">
