@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Stock Icara" />
+<title>Stock matériaux — Icara Renov</title>
+<style>
+  :root{
+    --paper: #EDE8DD;
+    --paper-dark: #E1DACB;
+    --ink: #26231D;
+    --ink-soft: #6B6459;
+    --line: #C9C0AC;
+    --orange: #D9550C;
+    --steel: #3E5866;
+    --low: #B23A2E;
+    --card: #F7F4EC;
+    --radius: 3px;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  body{
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 3px);
+    min-height: 100vh;
+  }
+  #app{ min-height: 100vh; }
+  .wrap{ max-width: 980px; margin: 0 auto; padding: 24px 20px 70px; }
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom: 3px solid var(--ink); padding-bottom: 14px; margin-bottom: 18px;
+    flex-wrap: wrap; gap: 14px;
+  }
+  .brand-eyebrow{ font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 4px; font-weight: 700; }
+  h1{ margin: 0; font-size: 28px; letter-spacing: 0.01em; text-transform: uppercase; font-weight: 800; }
+  .stats{ display:flex; gap: 16px; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .stat{ text-align: right; }
+  .stat .n{ font-size: 21px; font-weight: 700; line-height:1; }
+  .stat .l{ font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  nav.views{ display:flex; gap: 6px; margin-bottom: 16px; border-bottom: 1.5px solid var(--line); }
+  nav.views button{
+    background:none; border:none; padding: 9px 4px; margin-right: 18px; font-size: 13px;
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft);
+    cursor:pointer; border-bottom: 3px solid transparent; margin-bottom: -1.5px;
+  }
+  nav.views button.active{ color: var(--ink); border-bottom-color: var(--orange); }
+
+  .toolbar{ display:flex; gap:10px; margin-bottom:14px; flex-wrap: wrap; align-items:center; }
+  .search{ flex: 1 1 220px; min-width: 160px; padding: 10px 12px; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--card); font-size: 14px; color: var(--ink); }
+  .search:focus{ outline: none; border-color: var(--orange); }
+  .btn{ border: 2px solid var(--ink); background: var(--ink); color: var(--paper); padding: 10px 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 13px; border-radius: var(--radius); cursor: pointer; white-space: nowrap; }
+  .btn:hover{ background: var(--orange); border-color: var(--orange); }
+  .btn.ghost{ background: transparent; color: var(--ink); }
+  .btn.ghost:hover{ background: var(--ink); color: var(--paper); }
+  .btn.small{ padding: 6px 10px; font-size: 11px; }
+
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 18px; }
+  .chip{ display:flex; align-items:center; gap:6px; padding: 6px 6px 6px 12px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer; background: var(--paper-dark); color: var(--ink-soft); user-select: none; }
+  .chip.active{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .chip .x{ opacity: 0.5; padding: 2px 6px; border-radius: 50%; font-weight: 900; }
+  .chip .x:hover{ opacity: 1; background: var(--low); color: #fff; }
+  .chip.locked{ padding-right: 12px; }
+
+  .panel{ background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; }
+  .panel h2{ margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); font-weight: 800; }
+  .grid-form{ display:grid; grid-template-columns: 2fr 1.3fr 1fr 1fr 1.3fr auto; gap: 10px; align-items: end; }
+  @media (max-width: 760px){ .grid-form{ grid-template-columns: 1fr 1fr; } }
+  .field label{ display:block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-bottom: 5px; font-weight: 700;}
+  .field input, .field select{ width: 100%; padding: 9px 10px; border: 1.5px solid var(--line); border-radius: var(--radius); font-size: 14px; background: #fff; color: var(--ink); }
+  .field input:focus, .field select:focus{ outline:none; border-color: var(--orange); }
+
+  .group{ margin-bottom: 24px; }
+  .group-head{ display:flex; align-items:baseline; gap: 10px; margin-bottom: 10px; border-bottom: 1.5px solid var(--line); padding-bottom: 6px; }
+  .group-head h3{ margin:0; font-size: 16px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800; }
+  .group-head .count{ font-size: 12px; color: var(--ink-soft); font-family: ui-monospace, monospace; }
+
+  .items{ display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .card{ background: var(--card); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 14px; position: relative; clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px)); border-left: 4px solid var(--steel); }
+  .card.low{ border-left-color: var(--low); }
+  .card .name{ font-weight: 700; font-size: 15px; margin-bottom: 2px; padding-right: 20px; }
+  .card .sub{ font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+  .qty-row{ display:flex; align-items:center; justify-content: space-between; gap: 8px; }
+  .qty-btn{ width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--paper); font-size: 16px; font-weight: 800; cursor: pointer; color: var(--ink); display:flex; align-items:center; justify-content:center; line-height: 1; }
+  .qty-btn:hover{ background: var(--ink); color: var(--paper); }
+  .qty-val{ font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 20px; font-weight: 700; min-width: 54px; text-align:center; }
+  .qty-unit{ font-size: 11px; color: var(--ink-soft); text-align:center; }
+  .del{ position:absolute; top: 8px; right: 8px; background:none; border:none; cursor:pointer; color: var(--ink-soft); font-size: 14px; padding: 2px 4px; }
+  .del:hover{ color: var(--low); }
+
+  .empty{ text-align:center; padding: 50px 20px; color: var(--ink-soft); border: 2px dashed var(--line); border-radius: var(--radius); font-size: 14px; }
+  .empty b{ display:block; color: var(--ink); font-size: 16px; margin-bottom: 6px; text-transform: uppercase; }
+
+  .manage-list{ display:flex; flex-direction:column; gap: 8px; }
+  .manage-row{ display:flex; align-items:center; justify-content:space-between; background: var(--card); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 8px 12px; }
+  .manage-row .name{ font-weight: 700; font-size: 14px; }
+  .manage-row .meta{ font-size: 11px; color: var(--ink-soft); font-family: ui-monospace, monospace; }
+  .add-row{ display:flex; gap: 8px; margin-top: 10px; }
+  .add-row input{ flex:1; padding: 9px 10px; border: 1.5px solid var(--line); border-radius: var(--radius); font-size: 14px; }
+
+  .toast{ position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.25s ease; pointer-events: none; z-index: 50; max-width: 90vw; text-align:center; }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const DEFAULT_CATEGORIES = ["Plomberie", "Électricité", "Parquet", "Quincaillerie", "Peinture"];
+const DEFAULT_LOCATIONS = ["Dépôt"];
+const NO_CAT = "Non classé";
+const NO_LOC = "Non renseigné";
+const UNITS = ["pièce", "m²", "ml", "kg", "boîte", "rouleau", "sac", "L"];
+const LS_ITEMS = "icara-stock-items";
+const LS_CATS = "icara-stock-categories";
+const LS_LOCS = "icara-stock-locations";
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function loadLS(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  }catch(e){
+    console.error("Erreur de lecture", key, e);
+    return fallback;
+  }
+}
+function saveLS(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch(e){ console.error("Erreur de sauvegarde", key, e); return false; }
+}
+
+function App(){
+  const [items, setItems] = useState(() => loadLS(LS_ITEMS, []));
+  const [categories, setCategories] = useState(() => {
+    let c = loadLS(LS_CATS, DEFAULT_CATEGORIES);
+    if(!c.includes(NO_CAT)) c = [...c, NO_CAT];
+    return c;
+  });
+  const [locations, setLocations] = useState(() => {
+    let l = loadLS(LS_LOCS, DEFAULT_LOCATIONS);
+    if(!l.includes(NO_LOC)) l = [...l, NO_LOC];
+    return l;
+  });
+
+  const [view, setView] = useState("categorie"); // categorie | emplacement | gestion
+  const [activeFilter, setActiveFilter] = useState("Toutes");
+  const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef(null);
+
+  const [form, setForm] = useState({ name:"", category: categories[0] || NO_CAT, qty:"1", unit:"pièce", location: locations[0] || NO_LOC });
+  const [newCat, setNewCat] = useState("");
+  const [addingCat, setAddingCat] = useState(false);
+  const [newLoc, setNewLoc] = useState("");
+  const [addingLoc, setAddingLoc] = useState(false);
+  const [manageNewCat, setManageNewCat] = useState("");
+  const [manageNewLoc, setManageNewLoc] = useState("");
+
+  useEffect(() => { saveLS(LS_ITEMS, items); }, [items]);
+  useEffect(() => { saveLS(LS_CATS, categories); }, [categories]);
+  useEffect(() => { saveLS(LS_LOCS, locations); }, [locations]);
+  useEffect(() => { setActiveFilter("Toutes"); }, [view]);
+
+  function showToast(msg){
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 2200);
+  }
+
+  function addItem(e){
+    e.preventDefault();
+    const name = form.name.trim();
+    const qty = parseFloat(form.qty);
+    if(!name || isNaN(qty)) return;
+    const next = [...items, { id: uid(), name, category: form.category || NO_CAT, quantity: qty, unit: form.unit, location: form.location || NO_LOC }];
+    setItems(next);
+    setForm(f => ({ ...f, name:"", qty:"1" }));
+    showToast(`"${name}" ajouté au stock`);
+  }
+
+  function adjustQty(id, delta){
+    setItems(items.map(it => it.id === id ? { ...it, quantity: Math.max(0, +(it.quantity + delta).toFixed(2)) } : it));
+  }
+
+  function deleteItem(id){
+    const it = items.find(i => i.id === id);
+    if(!it) return;
+    if(!confirm(`Supprimer "${it.name}" du stock ?`)) return;
+    setItems(items.filter(i => i.id !== id));
+    showToast("Article supprimé");
+  }
+
+  function addCategoryFromForm(){
+    const name = newCat.trim();
+    setAddingCat(false); setNewCat("");
+    if(!name) return;
+    const existing = categories.find(c => c.toLowerCase() === name.toLowerCase());
+    if(existing){ setForm(f => ({ ...f, category: existing })); return; }
+    setCategories([...categories.filter(c => c !== NO_CAT), name, NO_CAT]);
+    setForm(f => ({ ...f, category: name }));
+    showToast(`Catégorie "${name}" créée`);
+  }
+
+  function addLocationFromForm(){
+    const name = newLoc.trim();
+    setAddingLoc(false); setNewLoc("");
+    if(!name) return;
+    const existing = locations.find(l => l.toLowerCase() === name.toLowerCase());
+    if(existing){ setForm(f => ({ ...f, location: existing })); return; }
+    setLocations([...locations.filter(l => l !== NO_LOC), name, NO_LOC]);
+    setForm(f => ({ ...f, location: name }));
+    showToast(`Emplacement "${name}" créé`);
+  }
+
+  function addCategoryManage(){
+    const name = manageNewCat.trim();
+    if(!name) return;
+    if(categories.some(c => c.toLowerCase() === name.toLowerCase())){ setManageNewCat(""); return; }
+    setCategories([...categories.filter(c => c !== NO_CAT), name, NO_CAT]);
+    setManageNewCat("");
+    showToast(`Catégorie "${name}" créée`);
+  }
+
+  function addLocationManage(){
+    const name = manageNewLoc.trim();
+    if(!name) return;
+    if(locations.some(l => l.toLowerCase() === name.toLowerCase())){ setManageNewLoc(""); return; }
+    setLocations([...locations.filter(l => l !== NO_LOC), name, NO_LOC]);
+    setManageNewLoc("");
+    showToast(`Emplacement "${name}" créé`);
+  }
+
+  function deleteCategory(cat){
+    if(cat === NO_CAT) return;
+    const count = items.filter(i => i.category === cat).length;
+    const msg = count > 0
+      ? `Supprimer "${cat}" ? ${count} article(s) seront déplacés vers "${NO_CAT}".`
+      : `Supprimer la catégorie "${cat}" ?`;
+    if(!confirm(msg)) return;
+    setItems(items.map(i => i.category === cat ? { ...i, category: NO_CAT } : i));
+    setCategories(categories.filter(c => c !== cat));
+    if(activeFilter === cat) setActiveFilter("Toutes");
+    showToast(`Catégorie "${cat}" supprimée`);
+  }
+
+  function deleteLocation(loc){
+    if(loc === NO_LOC) return;
+    const count = items.filter(i => i.location === loc).length;
+    const msg = count > 0
+      ? `Supprimer "${loc}" ? ${count} article(s) seront déplacés vers "${NO_LOC}".`
+      : `Supprimer l'emplacement "${loc}" ?`;
+    if(!confirm(msg)) return;
+    setItems(items.map(i => i.location === loc ? { ...i, location: NO_LOC } : i));
+    setLocations(locations.filter(l => l !== loc));
+    if(activeFilter === loc) setActiveFilter("Toutes");
+    showToast(`Emplacement "${loc}" supprimé`);
+  }
+
+  const groupKey = view === "emplacement" ? "location" : "category";
+  const filterList = view === "emplacement" ? locations : categories;
+
+  const filtered = useMemo(() => {
+    return items.filter(it => {
+      const matchFilter = activeFilter === "Toutes" || it[groupKey] === activeFilter;
+      const s = search.trim().toLowerCase();
+      const matchSearch = !s || it.name.toLowerCase().includes(s) || it.location.toLowerCase().includes(s) || it.category.toLowerCase().includes(s);
+      return matchFilter && matchSearch;
+    });
+  }, [items, activeFilter, search, groupKey]);
+
+  const grouped = useMemo(() => {
+    const map = {};
+    filtered.forEach(it => {
+      const k = it[groupKey];
+      if(!map[k]) map[k] = [];
+      map[k].push(it);
+    });
+    return map;
+  }, [filtered, groupKey]);
+
+  const totalRefs = items.length;
+  const totalQty = items.reduce((s,i) => s + i.quantity, 0);
+  const lowCount = items.filter(i => i.quantity <= 2).length;
+
+  return (
+    <div className="wrap">
+      <header className="top">
+        <div>
+          <div className="brand-eyebrow">Icara Renov — Suivi de chantier</div>
+          <h1>Stock matériaux</h1>
+        </div>
+        <div className="stats">
+          <div className="stat"><div className="n">{totalRefs}</div><div className="l">Références</div></div>
+          <div className="stat"><div className="n">{totalQty}</div><div className="l">Unités</div></div>
+          <div className="stat"><div className="n" style={{color: lowCount ? 'var(--low)' : 'inherit'}}>{lowCount}</div><div className="l">Stock bas</div></div>
+        </div>
+      </header>
+
+      <nav className="views">
+        <button className={view === "categorie" ? "active" : ""} onClick={() => setView("categorie")}>Par catégorie</button>
+        <button className={view === "emplacement" ? "active" : ""} onClick={() => setView("emplacement")}>Par emplacement</button>
+        <button className={view === "gestion" ? "active" : ""} onClick={() => setView("gestion")}>Gérer</button>
+      </nav>
+
+      {view !== "gestion" && (
+        <React.Fragment>
+          <div className="toolbar">
+            <input className="search" placeholder="Rechercher un article, un emplacement, une catégorie…" value={search} onChange={e => setSearch(e.target.value)} />
+            <button className="btn" onClick={() => setShowForm(s => !s)}>{showForm ? "Fermer" : "+ Ajouter un article"}</button>
+          </div>
+
+          <div className="chips">
+            <div className={`chip locked ${activeFilter === "Toutes" ? "active" : ""}`} onClick={() => setActiveFilter("Toutes")}>Toutes</div>
+            {filterList.map(f => (
+              <div key={f} className={`chip ${f === NO_CAT || f === NO_LOC ? "locked" : ""} ${activeFilter === f ? "active" : ""}`}>
+                <span onClick={() => setActiveFilter(f)}>{f}</span>
+                {f !== NO_CAT && f !== NO_LOC && (
+                  <span className="x" onClick={(e) => { e.stopPropagation(); view === "emplacement" ? deleteLocation(f) : deleteCategory(f); }}>×</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {showForm && (
+            <div className="panel">
+              <h2>Nouvel article</h2>
+              <form className="grid-form" onSubmit={addItem}>
+                <div className="field">
+                  <label>Nom</label>
+                  <input required value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Ex. Scotch toilé 50mm" />
+                </div>
+                <div className="field">
+                  <label>Catégorie</label>
+                  {!addingCat ? (
+                    <select value={form.category} onChange={e => {
+                      if(e.target.value === "__new__") setAddingCat(true);
+                      else setForm(f => ({...f, category: e.target.value}));
+                    }}>
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="__new__">+ Nouvelle catégorie…</option>
+                    </select>
+                  ) : (
+                    <input autoFocus placeholder="Nom de la catégorie" value={newCat}
+                      onChange={e => setNewCat(e.target.value)}
+                      onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addCategoryFromForm(); } if(e.key === 'Escape'){ setAddingCat(false); setNewCat(""); } }}
+                      onBlur={addCategoryFromForm} />
+                  )}
+                </div>
+                <div className="field">
+                  <label>Quantité</label>
+                  <input required type="number" step="0.01" min="0" value={form.qty} onChange={e => setForm(f => ({...f, qty: e.target.value}))} />
+                </div>
+                <div className="field">
+                  <label>Unité</label>
+                  <select value={form.unit} onChange={e => setForm(f => ({...f, unit: e.target.value}))}>
+                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Emplacement</label>
+                  {!addingLoc ? (
+                    <select value={form.location} onChange={e => {
+                      if(e.target.value === "__new__") setAddingLoc(true);
+                      else setForm(f => ({...f, location: e.target.value}));
+                    }}>
+                      {locations.map(l => <option key={l} value={l}>{l}</option>)}
+                      <option value="__new__">+ Nouvel emplacement…</option>
+                    </select>
+                  ) : (
+                    <input autoFocus placeholder="Ex. Camion 1" value={newLoc}
+                      onChange={e => setNewLoc(e.target.value)}
+                      onKeyDown={e => { if(e.key === 'Enter'){ e.preventDefault(); addLocationFromForm(); } if(e.key === 'Escape'){ setAddingLoc(false); setNewLoc(""); } }}
+                      onBlur={addLocationFromForm} />
+                  )}
+                </div>
+                <button className="btn" type="submit">Ajouter</button>
+              </form>
+            </div>
+          )}
+
+          {filtered.length === 0 ? (
+            <div className="empty">
+              <b>Rien ici</b>
+              {items.length === 0 ? "Ajoute ton premier article pour démarrer le stock." : "Aucun article ne correspond à ta recherche."}
+            </div>
+          ) : (
+            Object.keys(grouped).sort().map(k => (
+              <div className="group" key={k}>
+                <div className="group-head">
+                  <h3>{k}</h3>
+                  <span className="count">{grouped[k].length} réf.</span>
+                </div>
+                <div className="items">
+                  {grouped[k].map(it => (
+                    <div className={`card ${it.quantity <= 2 ? "low" : ""}`} key={it.id}>
+                      <button className="del" onClick={() => deleteItem(it.id)} title="Supprimer">✕</button>
+                      <div className="name">{it.name}</div>
+                      <div className="sub">{view === "emplacement" ? it.category : it.location}</div>
+                      <div className="qty-row">
+                        <button className="qty-btn" onClick={() => adjustQty(it.id, -1)}>−</button>
+                        <div>
+                          <div className="qty-val">{it.quantity}</div>
+                          <div className="qty-unit">{it.unit}</div>
+                        </div>
+                        <button className="qty-btn" onClick={() => adjustQty(it.id, 1)}>+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </React.Fragment>
+      )}
+
+      {view === "gestion" && (
+        <React.Fragment>
+          <div className="panel">
+            <h2>Catégories</h2>
+            <div className="manage-list">
+              {categories.map(c => (
+                <div className="manage-row" key={c}>
+                  <div>
+                    <div className="name">{c}</div>
+                    <div className="meta">{items.filter(i => i.category === c).length} article(s)</div>
+                  </div>
+                  {c !== NO_CAT && <button className="btn ghost small" onClick={() => deleteCategory(c)}>Supprimer</button>}
+                </div>
+              ))}
+            </div>
+            <div className="add-row">
+              <input placeholder="Nouvelle catégorie…" value={manageNewCat} onChange={e => setManageNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCategoryManage()} />
+              <button className="btn small" onClick={addCategoryManage}>Ajouter</button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2>Emplacements</h2>
+            <div className="manage-list">
+              {locations.map(l => (
+                <div className="manage-row" key={l}>
+                  <div>
+                    <div className="name">{l}</div>
+                    <div className="meta">{items.filter(i => i.location === l).length} article(s)</div>
+                  </div>
+                  {l !== NO_LOC && <button className="btn ghost small" onClick={() => deleteLocation(l)}>Supprimer</button>}
+                </div>
+              ))}
+            </div>
+            <div className="add-row">
+              <input placeholder="Nouvel emplacement…" value={manageNewLoc} onChange={e => setManageNewLoc(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLocationManage()} />
+              <button className="btn small" onClick={addLocationManage}>Ajouter</button>
+            </div>
+          </div>
+        </React.Fragment>
+      )}
+
+      <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+</body>
+</html>
